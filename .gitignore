@@ -15,6 +15,9 @@ node_modules
 # env files
 .env*
 **/.env*
+.dev.vars*
+.cloudflare/
+.wrangler/
 
 !**/.env.example
 

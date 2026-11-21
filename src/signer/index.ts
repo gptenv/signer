@@ -1,1 +1,1 @@
-export * from './aws-signer';
+export {WorkersSigner} from './WorkersSigner.js';
