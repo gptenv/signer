@@ -1,28 +1,33 @@
 {
-  "name": "@uniswap/signer",
-  "version": "0.0.0",
-  "description": "Uniswap package for securely signing messages.",
-  "main": "index.js",
+  "name": "@gptenv/signer",
+  "version": "0.1.0",
+  "description": "Offline Ethereum signing for Cloudflare Workers.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
   "license": "MIT",
   "scripts": {
-    "lint": "eslint . --max-warnings 0",
-    "test": "vitest",
-    "test:e2e": "true",
-    "typecheck": "tsc -noEmit"
+    "build": "tsc",
+    "prepare": "npm run build",
+    "test": "npm run build && node --test tests/workers-signer.test.mjs",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@aws-sdk/client-kms": "3.938.0",
-    "asn1.js": "5.4.1",
-    "ethers": "6.15.0"
+    "ethers": "6.17.0"
   },
   "devDependencies": {
-    "@types/node": "20.11.5",
-    "@uniswap/utils": "workspace:packages/utils",
-    "gts": "5.3.1",
-    "ts-node": "10.9.2",
-    "vitest": "4.0.18"
+    "esbuild": "0.28.2",
+    "miniflare": "4.20260730.0",
+    "typescript": "5.9.3"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22.0.0"
   }
 }
