@@ -37,11 +37,12 @@ Tests run in a local `workerd` instance through Miniflare with a generated dispo
 
 The deployable `gptenv-signer` Worker exposes only `SignerService.status()` over a private service binding. It reports `signingEnabled: false`. HTTP requests return 404. The configuration disables `workers.dev` and preview URLs and defines no routes. It accepts no signing requests and has no wallet secret binding.
 
-GitHub Actions tests pull requests and pushes to `main`, including merges. The deploy job runs only after tests and a successful build dry run, then checks that the tested commit is still the head of `main`. Configure GitHub before merging or deploying:
+GitHub Actions tests pull requests and pushes to `main`, including merges. The deploy job runs only after tests and a successful build dry run. It verifies actual branch protection, the required CI check, configured production reviewers with self-review disabled, and a main-only deployment branch policy before accessing Cloudflare credentials. It also checks that the tested commit is still the head of `main`. Administration-only settings, including approval dismissal and administrator bypass controls, must be verified by a repository administrator before enabling the release. Configure GitHub before merging or deploying:
 
 - Protect `main`. Require an independent approval and the **Test and validate Worker** check, dismiss stale approvals, and block bypasses and direct pushes.
-- Create the `production` environment with the `main` deployment branch, independent required reviewers, self-review disabled, and admin bypass disabled. Enter the verified account ID as the environment variable `SIGNER_CLOUDFLARE_ACCOUNT_ID`. Create `SIGNER_CLOUDFLARE_DEPLOY_TOKEN` as an environment secret using a token restricted to that account and the minimum Workers deployment permissions available. Prefer an individual Worker scope when supported. Set `SIGNER_PRODUCTION_ENABLED` to `true` in that environment after verifying its protections.
-- Verify the target Worker name and account before the first deployment. Check the deployment tag against the reviewed main commit and confirm that public routes and preview URLs are disabled.
+- Create the `production` environment with the `main` deployment branch, independent required reviewers, self-review disabled, and admin bypass disabled. Enter the verified account ID as the environment variable `SIGNER_CLOUDFLARE_ACCOUNT_ID`.
+- Reserve the `gptenv-signer` Worker record without uploading a version, with public URLs disabled. This permits a Cloudflare API token with the Individual Workers Editor role scoped to this Worker alone, rather than permission to create Workers or change other Workers. Store this token directly in GitHub as the `SIGNER_CLOUDFLARE_DEPLOY_TOKEN` production environment secret. Set `SIGNER_PRODUCTION_ENABLED` to `true` in that environment after verifying its protections.
+- After the reviewed commit deploys, check the deployment tag against main and confirm that public routes and preview URLs are disabled.
 
 ## Dedicated delegate design
 

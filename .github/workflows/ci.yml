@@ -41,6 +41,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: production
+    permissions:
+      contents: read
+      actions: read
     env:
       CF_SEND_TELEMETRY: 'false'
     steps:
@@ -52,6 +55,10 @@ jobs:
         with:
           node-version: 24.22.3
           cache: npm
+      - name: Verify actual release protections
+        run: node scripts/verify-release-gates.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
       - run: npm ci
       - run: npm exec -- cf build --mode production
       - name: Deploy tested main commit

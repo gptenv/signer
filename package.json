@@ -16,7 +16,7 @@
   "scripts": {
     "build": "tsc",
     "prepare": "npm run build",
-    "test": "npm run build && node --test tests/workers-signer.test.mjs",
+    "test": "npm run build && node --test tests/*.test.mjs",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.worker.json"
   },
   "dependencies": {
