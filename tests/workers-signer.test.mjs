@@ -22,21 +22,25 @@ test('rejects missing and invalid secrets without echoing them', () => {
   }
 });
 
-test('signs Ethereum payloads in a Worker without a provider', async () => {
-  const fixture = fileURLToPath(new URL('./fixtures/signing-worker.mjs', import.meta.url));
+async function bundle(path) {
   const {outputFiles} = await build({
-    entryPoints: [fixture],
+    entryPoints: [fileURLToPath(new URL(path, import.meta.url))],
     bundle: true,
     format: 'esm',
     platform: 'browser',
     conditions: ['workerd', 'worker', 'browser'],
+    external: ['cloudflare:workers'],
     write: false,
   });
+  return outputFiles[0].text;
+}
+
+test('signs synthetic Ethereum payloads with a disposable key in workerd', async () => {
   const disposableWallet = Wallet.createRandom();
   const worker = new Miniflare({
     compatibilityDate: '2026-07-30',
     modules: true,
-    script: outputFiles[0].text,
+    script: await bundle('./fixtures/signing-worker.mjs'),
     bindings: {DELEGATE_SIGNING_KEY: disposableWallet.privateKey},
   });
 
@@ -53,6 +57,41 @@ test('signs Ethereum payloads in a Worker without a provider', async () => {
     assert.equal(transaction.to, signed.address);
     assert.equal(transaction.chainId, 31337n);
     assert.equal(transaction.value, 0n);
+
+  } finally {
+    await worker.dispose();
+  }
+});
+
+test('production only exposes private disabled status', async () => {
+  const moduleOptions = {modules: true, compatibilityDate: '2026-07-30'};
+  const worker = new Miniflare({workers: [
+    {
+      ...moduleOptions,
+      name: 'caller',
+      serviceBindings: {SIGNER: {name: 'signer', entrypoint: 'SignerService'}},
+      script: `export default {
+        async fetch(_request, {SIGNER}) {
+          const status = await SIGNER.status();
+          try {
+            await SIGNER.signDigest('untrusted payload');
+            return Response.json({status, rejected: false});
+          } catch {
+            return Response.json({status, rejected: true});
+          }
+        }
+      };`,
+    },
+    {...moduleOptions, name: 'signer', script: await bundle('../worker/signer.ts')},
+  ]});
+
+  try {
+    const response = await worker.dispatchFetch('https://signer.test/');
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {status: {signingEnabled: false}, rejected: true});
+    const signer = await worker.getWorker('signer');
+    const http = await signer.fetch('https://signer.test/sign', {method: 'POST'});
+    assert.equal(http.status, 404);
   } finally {
     await worker.dispose();
   }
